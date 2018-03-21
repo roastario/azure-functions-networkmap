@@ -1,8 +1,6 @@
 package com.r3.networkmap.azure
 
-import com.microsoft.azure.serverless.functions.ExecutionContext
 import com.microsoft.azure.serverless.functions.HttpRequestMessage
-import com.microsoft.azure.serverless.functions.HttpResponseMessage
 import com.microsoft.azure.serverless.functions.OutputBinding
 import com.microsoft.azure.serverless.functions.annotation.*
 import net.corda.core.crypto.Crypto
@@ -62,6 +60,17 @@ class AzureNetworkMap {
         }
     }
 
+
+    @FunctionName("ping")
+    fun ping(@HttpTrigger(
+            name = "input", methods = ["get"],
+            authLevel = AuthorizationLevel.ANONYMOUS,
+            dataType = "binary",
+            route = "ping")
+             req: HttpRequestMessage<Any>): ByteArray {
+        return "OK".toByteArray()
+    }
+
     @FunctionName("publishNodeInfo")
     fun postNodeInfo(@HttpTrigger(
             name = "input", methods = ["post"],
@@ -85,18 +94,6 @@ class AzureNetworkMap {
         table.value = SignedNodeInfoRow(nodeInfo.raw.hash.toString(), addedNodeInfo.toBase58())
     }
 
-
-    @FunctionName("getNetworkMap")
-    fun getNetworkMap(
-            @HttpTrigger(methods = ["get"], dataType = "binary", authLevel = AuthorizationLevel.ANONYMOUS, route = "network-map", name = "in") token: HttpRequestMessage<Any?>,
-            @BlobInput(name = "serialisedNetworkMap", dataType = "binary", connection = "AzureWebJobsStorage", path = "networkmap/network-map.ser") networkMap: ByteArray?,
-            executionContext: ExecutionContext): HttpResponseMessage<ByteArray> {
-        val toReturn = networkMap ?: throw IllegalStateException("no previously serialized networkmap found")
-        val response = token.createResponse(200, toReturn)
-        response.addHeader("Content-Type", "application/octet-stream")
-        return response
-    }
-
     @FunctionName("getNodeInfo")
     fun getNodeInfo(@HttpTrigger(methods = ["get"], authLevel = AuthorizationLevel.ANONYMOUS, route = "network-map/node-info/{hash}", name = "token")
                     @BindingName("hash") hash: String?,
@@ -106,7 +103,7 @@ class AzureNetworkMap {
     }
 
     @FunctionName("scheduledNetworkMapBuild")
-    fun triggerNetworkMapBuild(@TimerTrigger(name = "scheduledBuild", schedule = "0 */5 * * * *")
+    fun triggerNetworkMapBuild(@TimerTrigger(name = "scheduledBuild", schedule = "0 */59 * * * *")
                                @BindingName("scheduledBuild") triggerData: String?,
                                @TableInput(name = "networkmap", tableName = "networkmap", connection = "AzureWebJobsStorage", partitionKey = "nodeInfos") tableContents: List<Map<String, String>>?,
                                @BlobOutput(name = "networkMapStoreOut", dataType = "binary", path = "networkmap/network-map.ser", connection = "AzureWebJobsStorage") outputBinding: OutputBinding<ByteArray>) {
