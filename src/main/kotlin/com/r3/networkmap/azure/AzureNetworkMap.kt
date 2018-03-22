@@ -103,7 +103,7 @@ class AzureNetworkMap {
     }
 
     @FunctionName("scheduledNetworkMapBuild")
-    fun triggerNetworkMapBuild(@TimerTrigger(name = "scheduledBuild", schedule = "0 */59 * * * *")
+    fun triggerNetworkMapBuild(@TimerTrigger(name = "scheduledBuild", schedule = "* */59 * * * *")
                                @BindingName("scheduledBuild") triggerData: String?,
                                @TableInput(name = "networkmap", tableName = "networkmap", connection = "AzureWebJobsStorage", partitionKey = "nodeInfos") tableContents: List<Map<String, String>>?,
                                @BlobOutput(name = "networkMapStoreOut", dataType = "binary", path = "networkmap/network-map.ser", connection = "AzureWebJobsStorage") outputBinding: OutputBinding<ByteArray>) {
