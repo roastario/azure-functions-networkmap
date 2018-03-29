@@ -1,6 +1,7 @@
 package com.r3.networkmap.azure
 
 import com.microsoft.azure.serverless.functions.HttpRequestMessage
+import com.microsoft.azure.serverless.functions.HttpResponseMessage
 import com.microsoft.azure.serverless.functions.OutputBinding
 import com.microsoft.azure.serverless.functions.annotation.*
 import net.corda.core.crypto.Crypto
@@ -86,6 +87,20 @@ class AzureNetworkMap {
         return "ok";
     }
 
+    @FunctionName("getNetworkMap")
+    @HttpOutput(name = "\$return", dataType = "binary")
+    fun getNetworkMapArray(
+            @HttpTrigger(methods = ["get"],
+                    dataType = "binary",
+                    authLevel = AuthorizationLevel.ANONYMOUS,
+                    route = "network-map",
+                    name = "in") token: HttpRequestMessage<String>,
+            @BlobInput(name = "serialisedNetworkMap",
+                    dataType = "binary",
+                    connection = "AzureWebJobsStorage",
+                    path = "networkmap/network-map.ser") networkMap: ByteArray): HttpResponseMessage<ByteArray> {
+        return token.createResponse(200, networkMap)
+    }
 
     @FunctionName("consumeNodeInfo")
     fun consumeNodeInfoFromQueue(@QueueTrigger(queueName = "nodeinfos", connection = "AzureWebJobsStorage", name = "nodeinfos", dataType = "binary") addedNodeInfo: ByteArray,
